@@ -3,6 +3,8 @@ package drum
 import (
 	"fmt"
 	"path"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -71,5 +73,45 @@ Tempo: 999
 			t.Fatalf("%s wasn't decoded as expect.\nGot:\n%s\nExpected:\n%s",
 				exp.path, decoded, exp.output)
 		}
+	}
+}
+
+func TestFileNotFound(t *testing.T) {
+	_, err := DecodeFile("sillyfilename.splice")
+	if err == nil {
+		t.Log("Expecting an error when file not found, but err is nil.")
+		t.Fail()
+	}
+}
+
+func TestEmptyFile(t *testing.T) {
+	name := path.Join("fixtures", "nobytes.splice")
+	file, err := os.Create(name)
+	if err != nil {
+		t.Fatalf("Could not create %v: %v", name, err)
+	}
+
+	if err = file.Close(); err != nil {
+		t.Fatalf("Could not close %v: %v", name, err)
+	}
+
+	if _, err = DecodeFile(name); err != ErrEmptySpliceFile {
+		t.Logf("Expecting an error when file is empty, but err is: %v", err)
+		t.Fail()
+	}
+}
+
+func TestEmptySPLICEFile(t *testing.T) {
+	// Create an empty SPLICE file (One that contains only "SPLICE" at start)
+	name := path.Join("fixtures", "empty_SPLICE.splice")
+	err := ioutil.WriteFile(name, []byte("SPLICE"), 0644)
+	if err != nil {
+		t.Fatalf("Could not write to file %v: %v", name, err)
+	}
+
+	_, err = DecodeFile(name)
+	if err == nil {
+		t.Log("Expecting an error when SPLICE file is empty, but err is nil.")
+		t.Fail()
 	}
 }
